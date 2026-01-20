@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# 1. Define Variables
+pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+output_dir="pokemon_data"
+mkdir -p "$output_dir"
+
+# 2. Define the Fetch Function
+fetch_pokemon() {
+    local pokemon=$1
+    local output_file="${output_dir}/${pokemon}.json"
+    local api_url="https://pokeapi.co/api/v2/pokemon/$pokemon"
+    
+    echo "Starting fetch for: $pokemon..."
+    
+    # Run curl
+    # We use -f (fail) so curl returns an error code on 404
+    curl -s -f -o "$output_file" "$api_url"
+    
+    # Check result
+    if [ $? -eq 0 ]; then
+        echo "✅ Finished: $pokemon"
+    else
+        echo "❌ Failed: $pokemon"
+    fi
+}
+
+# 3. Main Loop - Parallel Execution
+echo "--- Starting Parallel Batch Processing ---"
+
+for pokemon in "${pokemon_list[@]}"; do
+    # The '&' puts the function call in the background
+    fetch_pokemon "$pokemon" &
+    
+    # Store the Process ID (PID) if needed, but 'wait' handles it automatically
+done
+
+# 4. Wait for completion
+# This is crucial! Without 'wait', the script would exit immediately 
+# while the downloads are still running in the background.
+wait
+
+echo "--- All background processes complete. ---"
