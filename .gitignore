@@ -1,0 +1,24 @@
+# Project Output
+data.json
+errors.txt
+*.csv
+output.txt
+
+# VS Code
+.vscode/
+*.code-workspace
+*.swp
+
+# Windows
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+
+# OS Files
+Desktop.ini
+.DS_Store
