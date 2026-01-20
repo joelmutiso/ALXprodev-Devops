@@ -6,13 +6,17 @@ if [ ! -f "data.json" ]; then
     exit 1
 fi
 
-# Pipeline Explanation:
-# 1. jq: Extracts name, height, weight, and the first type. Outputs as CSV (e.g., "pikachu,4,60,electric").
-# 2. sed: Uses a regex to find the first letter of every word (\b[a-z]) and uppercase it (\U&).
-# 3. awk: Sets comma as separator (-F,), performs division for metric conversion, and prints the formatted string.
+# 1. Extract and Capitalize Name and Type
+name=$(jq -r '.name' data.json | sed 's/\b[a-z]/\U&/g')
+type=$(jq -r '.types[0].type.name' data.json | sed 's/\b[a-z]/\U&/g')
 
-jq -r '"\(.name),\(.height),\(.weight),\(.types[0].type.name)"' data.json | \
-sed 's/\b[a-z]/\U&/g' | \
-awk -F, '{
-    printf "%s is of type %s, weighs %gkg, and is %gm tall.\n", $1, $4, $3/10, $2/10
-}'
+# 2. Extract Raw Height and Weight
+raw_height=$(jq -r '.height' data.json)
+raw_weight=$(jq -r '.weight' data.json)
+
+# 3. Perform Calculations using awk
+formatted_height=$(echo "$raw_height" | awk '{print $1/10}')
+formatted_weight=$(echo "$raw_weight" | awk '{print $1/10}')
+
+# 4. Final Output
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
