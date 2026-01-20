@@ -1,29 +1,49 @@
 #!/bin/bash
 
-# 1. Define the list of Pokemon
-# We use lowercase because the PokeAPI URLs require lowercase names.
+# 1. Configuration
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
-
-# 2. Create the output directory if it doesn't exist
 output_dir="pokemon_data"
+error_file="errors.txt"
+max_retries=3
+
 mkdir -p "$output_dir"
 
-# 3. Loop through the list
+# 2. Loop through Pokemon
 for pokemon in "${pokemon_list[@]}"; do
-    echo "Fetching data for $pokemon..."
+    echo "Processing $pokemon..."
     
-    # Construct the filename and URL
     output_file="${output_dir}/${pokemon}.json"
     api_url="https://pokeapi.co/api/v2/pokemon/$pokemon"
     
-    # Fetch data
-    # -s: Silent mode
-    # -o: Output to file
-    curl -s -o "$output_file" "$api_url"
+    attempt=1
+    success=false
+
+    # 3. Retry Logic Loop
+    while [ $attempt -le $max_retries ]; do
+        # Make request and capture HTTP status code
+        http_code=$(curl -s -o "$output_file" -w "%{http_code}" "$api_url")
+        
+        if [ "$http_code" -eq 200 ]; then
+            echo "  Success: Saved to $output_file"
+            success=true
+            break # Exit the retry loop immediately on success
+        else
+            echo "  Attempt $attempt failed (HTTP $http_code). Retrying in 2s..."
+            sleep 2
+            ((attempt++))
+        fi
+    done
+
+    # 4. Final Failure Handling
+    if [ "$success" = false ]; then
+        echo "  Error: Failed to fetch $pokemon after $max_retries attempts."
+        # Log to error file with timestamp
+        echo "$(date): Failed to fetch $pokemon (HTTP $http_code)" >> "$error_file"
+        
+        # Cleanup empty file
+        if [ -f "$output_file" ]; then rm "$output_file"; fi
+    fi
     
-    echo "Saved data to $output_file ✅"
-    
-    # 4. Rate Limiting
-    # Sleep for 2 seconds to avoid hitting API rate limits
-    sleep 2
+    # Global rate limit between different Pokemon
+    sleep 1
 done
