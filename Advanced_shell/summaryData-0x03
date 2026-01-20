@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# 1. Define Files
+DATA_DIR="pokemon_data"
+OUTPUT_FILE="pokemon_report.csv"
+
+# Check if data directory exists
+if [ ! -d "$DATA_DIR" ]; then
+    echo "Error: Directory $DATA_DIR not found. Please run task 2 first."
+    exit 1
+fi
+
+# 2. Create CSV Header
+echo "Name,Height (m),Weight (kg)" > "$OUTPUT_FILE"
+
+# 3. Iterate through JSON files
+# Globs (*) are expanded alphabetically by default, matching the sample output order.
+for file in "$DATA_DIR"/*.json; do
+    # Pipeline breakdown:
+    # 1. jq: Extract raw Name, Height, Weight separated by spaces
+    # 2. sed: Capitalize the first letter of the name
+    # 3. awk: Divide height/weight by 10 and format to 1 decimal place (%.1f)
+    jq -r '"\(.name) \(.height) \(.weight)"' "$file" | \
+    sed 's/^\w/\U&/' | \
+    awk '{printf "%s,%.1f,%.1f\n", $1, $2/10, $3/10}' >> "$OUTPUT_FILE"
+done
+
+# 4. Output Generation Status
+echo "CSV Report generated at: $OUTPUT_FILE"
+echo ""
+
+# 5. Display CSV Content (Matches sample output)
+cat "$OUTPUT_FILE"
+echo ""
+
+# 6. Calculate and Display Averages
+# NR>1: Skip the header row
+# sum_h/sum_w: Accumulate totals
+# count: Count rows
+awk -F, '
+    NR > 1 {
+        sum_h += $2
+        sum_w += $3
+        count++
+    }
+    END {
+        if (count > 0) {
+            printf "Average Height: %.2f m\n", sum_h/count
+            printf "Average Weight: %.2f kg\n", sum_w/count
+        }
+    }
+' "$OUTPUT_FILE"
